@@ -290,6 +290,51 @@
   #status-msg.error { color: var(--danger); }
   #status-msg.ok { color: var(--ok); }
 
+  /* ---------- acompanhamento do pedido ---------- */
+  #tracking { display: none; }
+  body.tracking #tracking { display: block; }
+  body.tracking #route-note,
+  body.tracking .pay-row,
+  body.tracking #confirm-btn,
+  body.tracking #status-msg,
+  body.tracking #search-card { display: none; }
+  #tracking { margin-top: 14px; }
+  #trk-title { font-family: var(--font-display); font-weight: 700; font-size: 17px; display: flex; align-items: center; gap: 10px; }
+  #trk-sub { font-size: 13.5px; color: var(--text-dim); margin-top: 4px; line-height: 1.4; }
+  .pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--amber); flex-shrink: 0; animation: pulse 1.2s ease-in-out infinite; }
+  .pulse.ok { background: var(--ok); animation: none; }
+  .pulse.off { background: var(--text-faint); animation: none; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,176,32,0.5); } 50% { box-shadow: 0 0 0 8px rgba(255,176,32,0); } }
+  .trk-btn {
+    display: block; width: 100%; margin-top: 10px; padding: 14px;
+    border: none; border-radius: 12px; background: var(--ink); color: #fff;
+    font-family: var(--font-display); font-size: 15px; font-weight: 700;
+    text-align: center; text-decoration: none; cursor: pointer;
+  }
+  .trk-whats { background: #1fa855; }
+  .trk-ghost { background: var(--surface); color: var(--text); border: 1px solid var(--line); }
+
+  /* ---------- janela de identificação ---------- */
+  #modal-id {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 950; display: none; align-items: flex-end; justify-content: center;
+  }
+  #modal-id.show { display: flex; }
+  .modal-card {
+    width: 100%; max-width: 480px; background: var(--white);
+    border-radius: 18px 18px 0 0; padding: 20px 18px calc(20px + env(safe-area-inset-bottom, 0px));
+  }
+  .modal-card h2 { margin: 0 0 4px; font-family: var(--font-display); font-size: 19px; }
+  .modal-card p { margin: 0 0 14px; font-size: 13.5px; color: var(--text-dim); }
+  .modal-card label { display: block; font-size: 12.5px; font-weight: 600; color: var(--text-dim); margin: 10px 0 5px; }
+  .modal-card input {
+    width: 100%; padding: 13px 12px; border: 1px solid var(--line); border-radius: 10px;
+    font-size: 15px; font-family: inherit; background: var(--surface); outline: none;
+  }
+  .modal-card input:focus { border-color: var(--amber); background: var(--white); }
+  #id-erro { color: var(--danger); font-size: 12.5px; min-height: 16px; margin-top: 8px; }
+  a.drawer-item { text-decoration: none; }
+
   /* ---------- toast ---------- */
   #toast {
     position: fixed;
@@ -466,6 +511,29 @@
   </div>
   <button id="confirm-btn">Chamar moto</button>
   <div id="status-msg"></div>
+
+  <div id="tracking">
+    <div id="trk-title"><span class="pulse" id="trk-dot"></span><span id="trk-text">Procurando mototaxista...</span></div>
+    <div id="trk-sub"></div>
+    <a id="trk-whats" class="trk-btn trk-whats" target="_blank" rel="noopener" style="display:none">Falar com o motorista no WhatsApp</a>
+    <button id="trk-cancel" class="trk-btn trk-ghost">Cancelar pedido</button>
+    <button id="trk-new" class="trk-btn" style="display:none">Nova corrida</button>
+  </div>
+</div>
+
+<!-- identificação do passageiro -->
+<div id="modal-id">
+  <div class="modal-card">
+    <h2>Quase lá</h2>
+    <p>O motorista precisa saber quem é você e como te achar.</p>
+    <label for="id-nome">Seu nome</label>
+    <input type="text" id="id-nome" placeholder="Ex.: Maria" autocomplete="name">
+    <label for="id-tel">WhatsApp (com DDD)</label>
+    <input type="tel" id="id-tel" placeholder="(98) 9 9999-9999" autocomplete="tel" inputmode="tel">
+    <div id="id-erro"></div>
+    <button class="trk-btn" id="id-ok">Chamar moto</button>
+    <button class="trk-btn trk-ghost" id="id-cancel">Voltar</button>
+  </div>
 </div>
 
 <!-- menu lateral -->
@@ -535,6 +603,10 @@
         <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         Configurações
       </button>
+      <a class="drawer-item" href="motorista.html">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="6" cy="17" r="3.5" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="17" r="3.5" stroke="currentColor" stroke-width="2"/><path d="M6 17l4-6h5l3 6M14 7h3l1.5 3" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>
+        Sou motorista
+      </a>
       <button class="drawer-item" data-soon>
         <svg viewBox="0 0 24 24" fill="none"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Sair
@@ -543,6 +615,8 @@
   </div>
 </aside>
 
+<script src="config.js"></script>
+<script src="api.js"></script>
 <script>
 (function () {
   var CENTRO = [-1.5240, -45.0734]; // Apicum-Açu
@@ -558,6 +632,7 @@
 
   var markerOrigem = null, markerDestino = null, routeLine = null;
   var pontoOrigem = null, pontoDestino = null;
+  var resumoAtual = null;
 
   var body = document.body;
   var searchCard = document.getElementById('search-card');
@@ -840,6 +915,7 @@
     var km = distMetros / 1000;
     var min = Math.max(1, Math.round(duracaoSeg / 60));
     var preco = 4 + km * 1.8; // tarifa de teste: R$ 4 + R$ 1,80/km
+    resumoAtual = { km: km, min: min, preco: preco };
 
     document.getElementById('trip-meta').textContent = km.toFixed(1).replace('.', ',') + ' km · ' + min + ' min';
     document.getElementById('trip-price').textContent = 'R$ ' + preco.toFixed(2).replace('.', ',');
@@ -938,15 +1014,18 @@
 
   // ---------- localização do celular ----------
   function usarMinhaLocalizacao(silencioso) {
+    if (pedidoAtual) { centralizarPedido(); return; }
     if (!navigator.geolocation) {
       if (!silencioso) toast('Seu navegador não suporta localização.');
       return;
     }
     if (!silencioso) toast('Buscando sua localização...');
     navigator.geolocation.getCurrentPosition(function (pos) {
+      if (pedidoAtual) return;
       var lat = pos.coords.latitude, lon = pos.coords.longitude;
       inputOrigem.value = 'Localizando rua...';
       buscarEnderecoDoPonto(lat, lon, function (endereco) {
+        if (pedidoAtual) return;
         inputOrigem.value = enderecoCurto(endereco);
         setPonto('origem', lat, lon, endereco);
       });
@@ -961,13 +1040,194 @@
   // ao abrir o app, já tenta pegar a localização como ponto de embarque
   usarMinhaLocalizacao(true);
 
-  // ---------- confirmar ----------
-  confirmBtn.addEventListener('click', function () {
-    if (!pontoOrigem || !pontoDestino) return;
+  // ---------- pedido: salvar no banco e acompanhar ----------
+  var PASS_KEY = 'motoacu_passageiro';
+  var PEDIDO_KEY = 'motoacu_pedido_ativo';
+  var pedidoAtual = null;
+  var pollTimer = null;
+
+  function lerLocal(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
+  function gravarLocal(k, v) {
+    try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch (e) {}
+  }
+  function soDigitos(t) { return (t || '').replace(/\D/g, ''); }
+  function linkWhats(tel) {
+    var d = soDigitos(tel);
+    if (d.length <= 11) d = '55' + d;
+    return 'https://wa.me/' + d;
+  }
+  function reais(v) { return 'R$ ' + Number(v).toFixed(2).replace('.', ','); }
+
+  function pedirIdentificacao(callback) {
+    var salvo = lerLocal(PASS_KEY);
+    if (salvo && salvo.nome && soDigitos(salvo.tel).length >= 10) { callback(salvo); return; }
+    var modal = document.getElementById('modal-id');
+    var erro = document.getElementById('id-erro');
+    document.getElementById('id-nome').value = (salvo && salvo.nome) || '';
+    document.getElementById('id-tel').value = (salvo && salvo.tel) || '';
+    erro.textContent = '';
+    modal.classList.add('show');
+    document.getElementById('id-ok').onclick = function () {
+      var nome = document.getElementById('id-nome').value.trim();
+      var tel = document.getElementById('id-tel').value.trim();
+      if (nome.length < 2) { erro.textContent = 'Coloca seu nome.'; return; }
+      if (soDigitos(tel).length < 10) { erro.textContent = 'Coloca o WhatsApp com DDD.'; return; }
+      var pessoa = { nome: nome, tel: tel };
+      gravarLocal(PASS_KEY, pessoa);
+      modal.classList.remove('show');
+      callback(pessoa);
+    };
+    document.getElementById('id-cancel').onclick = function () { modal.classList.remove('show'); };
+  }
+
+  function enviarPedido(pessoa) {
     confirmBtn.disabled = true;
-    confirmBtn.textContent = 'Procurando mototaxista...';
-    statusMsg('Pedido enviado. Aguardando um motorista aceitar.', 'ok');
+    confirmBtn.textContent = 'Enviando pedido...';
+    statusMsg('', '');
+    var texto = function (inp) { return inp.value.indexOf('Localizando') === 0 ? '' : inp.value; };
+    MotoApi.criarPedido({
+      tipo: 'corrida',
+      passageiro_nome: pessoa.nome,
+      passageiro_tel: pessoa.tel,
+      origem_lat: pontoOrigem[0], origem_lon: pontoOrigem[1], origem_texto: texto(inputOrigem),
+      destino_lat: pontoDestino[0], destino_lon: pontoDestino[1], destino_texto: texto(inputDestino),
+      distancia_km: Math.round(resumoAtual.km * 100) / 100,
+      duracao_min: resumoAtual.min,
+      valor: Math.round(resumoAtual.preco * 100) / 100
+    }).then(function (p) {
+      pedidoAtual = p;
+      gravarLocal(PEDIDO_KEY, p.id);
+      mostrarAcompanhamento();
+    }).catch(function (e) {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = 'Chamar moto';
+      statusMsg('Não consegui enviar o pedido: ' + e.message, 'error');
+    });
+  }
+
+  function mostrarAcompanhamento() {
+    body.classList.add('tracking');
+    desativarModoSelecao();
+    document.getElementById('trip-meta').textContent =
+      Number(pedidoAtual.distancia_km).toFixed(1).replace('.', ',') + ' km · ' + pedidoAtual.duracao_min + ' min';
+    document.getElementById('trip-price').textContent = reais(pedidoAtual.valor);
+    renderAcompanhamento();
+    body.classList.add('sheet-open');
+    setTimeout(function () {
+      var h = document.getElementById('sheet').offsetHeight;
+      document.documentElement.style.setProperty('--sheet-h', h + 'px');
+      centralizarPedido();
+    }, 280);
+    pararPolling();
+    pollTimer = setInterval(atualizarPedido, 4000);
+  }
+
+  function centralizarPedido() {
+    if (!pedidoAtual) return;
+    var h = document.getElementById('sheet').offsetHeight || 260;
+    map.fitBounds([[pedidoAtual.origem_lat, pedidoAtual.origem_lon], [pedidoAtual.destino_lat, pedidoAtual.destino_lon]],
+      { paddingTopLeft: [50, 90], paddingBottomRight: [50, h + 40], maxZoom: 17 });
+  }
+
+  function pararPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+
+  function atualizarPedido() {
+    if (!pedidoAtual) return;
+    MotoApi.buscarPedido(pedidoAtual.id).then(function (p) {
+      if (!p) return;
+      pedidoAtual = p;
+      renderAcompanhamento();
+    }).catch(function () { /* sem internet agora: tenta de novo no próximo ciclo */ });
+  }
+
+  function renderAcompanhamento() {
+    var p = pedidoAtual;
+    var dot = document.getElementById('trk-dot');
+    var txt = document.getElementById('trk-text');
+    var sub = document.getElementById('trk-sub');
+    var whats = document.getElementById('trk-whats');
+    var cancel = document.getElementById('trk-cancel');
+    var nova = document.getElementById('trk-new');
+    dot.className = 'pulse';
+    whats.style.display = 'none';
+    cancel.style.display = 'none';
+    nova.style.display = 'none';
+
+    if (p.status === 'pendente') {
+      txt.textContent = 'Procurando mototaxista...';
+      sub.textContent = 'Seu pedido foi enviado. Assim que um motorista aceitar, aparece aqui.';
+      cancel.style.display = 'block';
+    } else if (p.status === 'aceito') {
+      dot.className = 'pulse ok';
+      txt.textContent = p.motorista_nome + ' aceitou e está indo até você';
+      sub.textContent = 'Fica no ponto de embarque. Se precisar, chama o motorista no WhatsApp.';
+      whats.href = linkWhats(p.motorista_tel);
+      whats.style.display = 'block';
+      cancel.style.display = 'block';
+    } else if (p.status === 'em_andamento') {
+      dot.className = 'pulse ok';
+      txt.textContent = 'Corrida em andamento';
+      sub.textContent = 'Boa viagem! Valor: ' + reais(p.valor) + ' (dinheiro ou Pix direto com o motorista).';
+      whats.href = linkWhats(p.motorista_tel);
+      whats.style.display = 'block';
+    } else if (p.status === 'concluido') {
+      dot.className = 'pulse off';
+      txt.textContent = 'Corrida concluída';
+      sub.textContent = 'Valor: ' + reais(p.valor) + '. Obrigado por usar o MotoAçu!';
+      nova.style.display = 'block';
+      encerrarPedido();
+    } else {
+      dot.className = 'pulse off';
+      txt.textContent = 'Pedido cancelado';
+      sub.textContent = '';
+      nova.style.display = 'block';
+      encerrarPedido();
+    }
+  }
+
+  function encerrarPedido() { pararPolling(); gravarLocal(PEDIDO_KEY, null); }
+
+  document.getElementById('trk-cancel').addEventListener('click', function () {
+    if (!pedidoAtual) return;
+    this.disabled = true;
+    var btn = this;
+    MotoApi.mudarStatus(pedidoAtual.id, 'cancelado', ['pendente', 'aceito']).then(function (p) {
+      btn.disabled = false;
+      if (p) pedidoAtual = p; else atualizarPedido();
+      renderAcompanhamento();
+    }).catch(function () { btn.disabled = false; toast('Não consegui cancelar. Tenta de novo.'); });
   });
+
+  document.getElementById('trk-new').addEventListener('click', function () {
+    gravarLocal(PEDIDO_KEY, null);
+    location.reload();
+  });
+
+  confirmBtn.addEventListener('click', function () {
+    if (!pontoOrigem || !pontoDestino || !resumoAtual) return;
+    if (!MotoApi.configurado()) {
+      statusMsg('Falta ligar o banco de dados (preencher o config.js).', 'error');
+      return;
+    }
+    pedirIdentificacao(enviarPedido);
+  });
+
+  // Se o passageiro fechou a página no meio de uma corrida, retoma de onde parou.
+  (function retomarPedido() {
+    var id = lerLocal(PEDIDO_KEY);
+    if (!id || !MotoApi.configurado()) return;
+    MotoApi.buscarPedido(id).then(function (p) {
+      if (!p || ['pendente', 'aceito', 'em_andamento'].indexOf(p.status) === -1) { gravarLocal(PEDIDO_KEY, null); return; }
+      pedidoAtual = p;
+      pontoOrigem = [p.origem_lat, p.origem_lon];
+      pontoDestino = [p.destino_lat, p.destino_lon];
+      if (markerOrigem) map.removeLayer(markerOrigem);
+      if (markerDestino) map.removeLayer(markerDestino);
+      markerOrigem = L.marker(pontoOrigem, { icon: iconOrigem }).addTo(map);
+      markerDestino = L.marker(pontoDestino, { icon: iconDestino }).addTo(map);
+      mostrarAcompanhamento();
+    }).catch(function () {});
+  })();
 
   // ---------- menu lateral ----------
   function abrirMenu() { body.classList.add('drawer-open'); }
