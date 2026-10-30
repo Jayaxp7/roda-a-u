@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MotoAçu</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root {
+    --ink: #14161a;
+    --ink-2: #1f232a;
+    --white: #ffffff;
+    --surface: #f6f7f9;
+    --line: #e4e7ec;
+    --text: #1a1d22;
+    --text-dim: #667080;
+    --text-faint: #9aa2af;
+    --amber: #ffb020;
+    --amber-deep: #d98f0f;
+    --amber-soft: #fff4dc;
+    --blue: #3b82f6;
+    --ok: #1f9d5c;
+    --danger: #d9443c;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --top-h: 58px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%;
+    margin: 0;
+    font-family: var(--font-body);
+    color: var(--text);
+    background: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  button { font-family: inherit; }
+
+  /* ---------- barra superior ---------- */
+  #topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: calc(var(--top-h) + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+    background: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 6px;
+    padding-right: 6px;
+    z-index: 700;
+  }
+  .top-btn {
+    width: 46px; height: 46px;
+    border: none;
+    background: none;
+    color: #fff;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .top-btn svg { width: 24px; height: 24px; }
+  .top-btn:active { background: var(--ink-2); }
+  .wordmark {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 18px;
+    color: #fff;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .wordmark .mark {
+    width: 24px; height: 24px; border-radius: 7px;
+    background: var(--amber);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .wordmark .mark svg { width: 14px; height: 14px; }
+
+  /* ---------- mapa ---------- */
+  #map {
+    position: fixed;
+    top: calc(var(--top-h) + env(safe-area-inset-top, 0px));
+    left: 0; right: 0; bottom: 0;
+    background: #e9ecef;
+  }
+  .leaflet-control-zoom { display: none; }
+  .leaflet-control-attribution { font-size: 9px; }
+
+  /* ---------- card de busca flutuante ---------- */
+  #search-card {
+    position: fixed;
+    top: calc(var(--top-h) + env(safe-area-inset-top, 0px) + 14px);
+    left: 14px; right: 14px;
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 4px 18px rgba(20,22,26,0.16);
+    z-index: 600;
+  }
+  #search-collapsed {
+    width: 100%;
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 16px;
+    border: none; background: none;
+    cursor: pointer;
+    text-align: left;
+  }
+  #search-collapsed svg { width: 22px; height: 22px; color: var(--text); flex-shrink: 0; }
+  #search-collapsed span { font-size: 16px; color: var(--text-dim); font-weight: 500; }
+
+  #search-expanded { display: none; padding: 12px 12px 12px 14px; }
+  #search-card.open #search-collapsed { display: none; }
+  #search-card.open #search-expanded { display: flex; gap: 10px; }
+
+  .route-track {
+    width: 12px;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 17px 0 19px;
+    flex-shrink: 0;
+  }
+  .rdot-o { width: 10px; height: 10px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 3px rgba(59,130,246,0.18); }
+  .rdot-d { width: 10px; height: 10px; border-radius: 2px; background: var(--amber); }
+  .rline { flex: 1; width: 2px; margin: 4px 0;
+    background: repeating-linear-gradient(to bottom, var(--line) 0, var(--line) 3px, transparent 3px, transparent 6px); }
+
+  .route-inputs { flex: 1; min-width: 0; }
+  .field-wrap { position: relative; }
+  .field-wrap + .field-wrap { margin-top: 8px; }
+
+  .field {
+    display: flex; align-items: center; gap: 4px;
+    background: var(--surface);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 4px 4px 4px 12px;
+  }
+  .field:focus-within { border-color: var(--amber); background: var(--white); }
+  .field input {
+    flex: 1; min-width: 0;
+    border: none; outline: none; background: transparent;
+    font-size: 14.5px; font-weight: 500; color: var(--text);
+    padding: 8px 0;
+    font-family: inherit;
+  }
+  .field input::placeholder { color: var(--text-faint); font-weight: 400; }
+
+  .icon-btn {
+    width: 34px; height: 34px;
+    border: none; background: none;
+    color: var(--text-faint);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .icon-btn svg { width: 18px; height: 18px; }
+  .icon-btn:active { background: var(--line); }
+  .icon-btn.active { color: var(--amber-deep); background: var(--amber-soft); }
+
+  #btn-close-search { align-self: flex-start; margin-top: 2px; }
+
+  .sugg-list {
+    position: absolute; left: 0; right: 0; top: calc(100% + 4px);
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    max-height: 210px; overflow-y: auto;
+    box-shadow: 0 10px 24px rgba(20,22,26,0.14);
+    z-index: 650;
+    display: none;
+  }
+  .sugg-list.show { display: block; }
+  .sugg-item {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 11px 12px;
+    font-size: 13.5px; line-height: 1.35;
+    border-bottom: 1px solid var(--surface);
+    cursor: pointer;
+  }
+  .sugg-item:last-child { border-bottom: none; }
+  .sugg-item:active { background: var(--surface); }
+  .sugg-item svg { width: 16px; height: 16px; color: var(--text-faint); flex-shrink: 0; margin-top: 1px; }
+
+  /* ---------- aviso de modo "marcar no mapa" ---------- */
+  #map-hint {
+    display: none;
+    position: fixed;
+    left: 50%; transform: translateX(-50%);
+    bottom: 110px;
+    background: var(--ink);
+    color: #fff;
+    font-size: 13px; font-weight: 600;
+    padding: 10px 16px;
+    border-radius: 22px;
+    z-index: 620;
+    white-space: nowrap;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+  }
+  #map-hint.show { display: block; }
+
+  /* ---------- botão de localização ---------- */
+  #fab-locate {
+    position: fixed;
+    right: 16px;
+    bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    border: none;
+    background: var(--white);
+    color: var(--text);
+    box-shadow: 0 4px 14px rgba(20,22,26,0.2);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    z-index: 600;
+    transition: bottom 0.25s ease;
+  }
+  #fab-locate svg { width: 26px; height: 26px; }
+  #fab-locate:active { background: var(--surface); }
+  body.sheet-open #fab-locate { bottom: calc(var(--sheet-h, 230px) + 14px); }
+
+  /* ---------- painel inferior (resumo da corrida) ---------- */
+  #sheet {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    background: var(--white);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -6px 24px rgba(20,22,26,0.14);
+    padding: 10px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+    z-index: 610;
+    transform: translateY(110%);
+    transition: transform 0.25s ease;
+  }
+  body.sheet-open #sheet { transform: translateY(0); }
+  .sheet-grip { width: 38px; height: 4px; border-radius: 2px; background: var(--line); margin: 0 auto 14px; }
+
+  .ride-option {
+    display: flex; align-items: center; gap: 14px;
+    border: 2px solid var(--amber);
+    background: var(--amber-soft);
+    border-radius: 14px;
+    padding: 12px 14px;
+  }
+  .ride-icon {
+    width: 46px; height: 46px; border-radius: 12px;
+    background: var(--white);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .ride-icon svg { width: 30px; height: 30px; }
+  .ride-info { flex: 1; min-width: 0; }
+  .ride-name { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+  .ride-meta { font-size: 12.5px; color: var(--text-dim); margin-top: 2px; }
+  .ride-price { font-family: var(--font-display); font-weight: 700; font-size: 19px; color: var(--text); }
+
+  #route-note {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--amber-deep);
+    margin-top: 10px;
+    padding: 0 2px;
+    min-height: 16px;
+  }
+  .pay-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 12px;
+    padding: 10px 2px;
+    font-size: 13.5px; color: var(--text-dim);
+  }
+  .pay-row strong { color: var(--text); font-weight: 600; }
+
+  #confirm-btn {
+    width: 100%;
+    margin-top: 4px;
+    padding: 15px;
+    border: none; border-radius: 12px;
+    background: var(--ink);
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: 16px; font-weight: 700;
+    cursor: pointer;
+  }
+  #confirm-btn:active:not(:disabled) { background: var(--ink-2); }
+  #confirm-btn:disabled { background: var(--line); color: var(--text-faint); cursor: not-allowed; }
+
+  #status-msg {
+    font-size: 12.5px; text-align: center; color: var(--text-dim);
+    margin-top: 10px; min-height: 16px;
+  }
+  #status-msg.error { color: var(--danger); }
+  #status-msg.ok { color: var(--ok); }
+
+  /* ---------- toast ---------- */
+  #toast {
+    position: fixed;
+    left: 50%; transform: translateX(-50%);
+    top: calc(var(--top-h) + env(safe-area-inset-top, 0px) + 86px);
+    background: var(--ink); color: #fff;
+    font-size: 13px; font-weight: 500;
+    padding: 10px 16px; border-radius: 10px;
+    z-index: 900;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  #toast.show { opacity: 1; }
+
+  /* ---------- menu lateral ---------- */
+  #drawer-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 800;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.22s ease;
+  }
+  #drawer {
+    position: fixed; top: 0; bottom: 0; left: 0;
+    width: min(82vw, 330px);
+    background: var(--surface);
+    z-index: 810;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    display: flex; flex-direction: column;
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  body.drawer-open #drawer { transform: translateX(0); }
+  body.drawer-open #drawer-overlay { opacity: 1; pointer-events: auto; }
+
+  .drawer-head { background: var(--white); padding: 20px 18px 18px; flex-shrink: 0; }
+  .profile { display: flex; align-items: center; gap: 14px; }
+  .avatar {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: linear-gradient(150deg, var(--amber), var(--amber-deep));
+    color: var(--ink);
+    font-family: var(--font-display); font-weight: 700; font-size: 22px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .profile-name { font-size: 17px; font-weight: 600; }
+  .profile-stats { display: flex; gap: 14px; margin-top: 5px; font-size: 13px; color: var(--text-dim); }
+  .profile-stats span { display: flex; align-items: center; gap: 5px; }
+  .profile-stats svg { width: 14px; height: 14px; }
+
+  .invite-btn {
+    width: 100%;
+    margin-top: 16px;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 12px;
+    border: none; border-radius: 10px;
+    background: var(--amber);
+    color: var(--ink);
+    font-size: 14.5px; font-weight: 700;
+    cursor: pointer;
+  }
+  .invite-btn svg { width: 18px; height: 18px; }
+
+  .drawer-body { flex: 1; overflow-y: auto; padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+  .drawer-section { border-bottom: 1px solid var(--line); padding: 6px 0; }
+  .drawer-section:last-child { border-bottom: none; }
+  .section-title { font-size: 13px; font-weight: 600; color: var(--text-faint); padding: 14px 18px 6px; }
+  .drawer-item {
+    width: 100%;
+    display: flex; align-items: center; gap: 18px;
+    padding: 13px 18px;
+    border: none; background: none;
+    font-size: 15px; font-weight: 500; color: var(--text);
+    text-align: left; cursor: pointer;
+  }
+  .drawer-item svg { width: 22px; height: 22px; color: var(--text); flex-shrink: 0; }
+  .drawer-item:active, .drawer-item.current { background: var(--line); }
+
+  /* marcadores */
+  .pin-origem {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--blue); border: 3px solid #fff;
+    box-shadow: 0 0 0 5px rgba(59,130,246,0.22), 0 2px 6px rgba(0,0,0,0.3);
+  }
+  .pin-destino {
+    width: 16px; height: 16px; border-radius: 4px;
+    background: var(--amber); border: 3px solid var(--ink);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+</style>
+</head>
+<body>
+
+<!-- barra superior -->
+<div id="topbar">
+  <button class="top-btn" id="btn-menu" aria-label="Abrir menu">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  </button>
+  <div class="wordmark">
+    <span class="mark"><svg viewBox="0 0 24 24" fill="none"><path d="M4 18C7 10 9 7 12 5C15 3 18 5 18 8C18 11 15 12 13 12" stroke="#14161a" stroke-width="2.6" stroke-linecap="round"/><circle cx="18.5" cy="18.5" r="2.4" fill="#14161a"/></svg></span>
+    MotoAçu
+  </div>
+  <button class="top-btn" id="btn-notif" aria-label="Notificações">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15L6 16Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M10 20.5a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+  </button>
+</div>
+
+<div id="map"></div>
+
+<!-- card de busca -->
+<div id="search-card">
+  <button id="search-collapsed">
+    <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="2.2"/><path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    <span>Para onde?</span>
+  </button>
+
+  <div id="search-expanded">
+    <div class="route-track"><span class="rdot-o"></span><span class="rline"></span><span class="rdot-d"></span></div>
+    <div class="route-inputs">
+      <div class="field-wrap" id="wrap-origem">
+        <div class="field">
+          <input type="text" id="input-origem" placeholder="Onde você está?" autocomplete="off">
+          <button class="icon-btn" id="btn-pin-origem" title="Marcar no mapa">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.2 7-11.5C19 5.4 15.9 3 12 3S5 5.4 5 9.5C5 14.8 12 21 12 21Z" stroke="currentColor" stroke-width="1.9"/><circle cx="12" cy="9.5" r="2.2" stroke="currentColor" stroke-width="1.9"/></svg>
+          </button>
+        </div>
+        <div class="sugg-list" id="sugg-origem"></div>
+      </div>
+      <div class="field-wrap" id="wrap-destino">
+        <div class="field">
+          <input type="text" id="input-destino" placeholder="Para onde?" autocomplete="off">
+          <button class="icon-btn" id="btn-pin-destino" title="Marcar no mapa">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.2 7-11.5C19 5.4 15.9 3 12 3S5 5.4 5 9.5C5 14.8 12 21 12 21Z" stroke="currentColor" stroke-width="1.9"/><circle cx="12" cy="9.5" r="2.2" stroke="currentColor" stroke-width="1.9"/></svg>
+          </button>
+        </div>
+        <div class="sugg-list" id="sugg-destino"></div>
+      </div>
+    </div>
+    <button class="icon-btn" id="btn-close-search" title="Fechar">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+</div>
+
+<div id="map-hint"></div>
+<div id="toast"></div>
+
+<button id="fab-locate" aria-label="Minha localização">
+  <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="6.5" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+</button>
+
+<!-- painel inferior -->
+<div id="sheet">
+  <div class="sheet-grip"></div>
+  <div class="ride-option">
+    <div class="ride-icon">
+      <svg viewBox="0 0 40 40" fill="none">
+        <circle cx="10" cy="27" r="6" stroke="#14161a" stroke-width="2.4"/>
+        <circle cx="30" cy="27" r="6" stroke="#14161a" stroke-width="2.4"/>
+        <path d="M10 27l7-10h8l5 10" stroke="#14161a" stroke-width="2.4" stroke-linejoin="round"/>
+        <path d="M23 12h5l2 5" stroke="#d98f0f" stroke-width="2.4" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="ride-info">
+      <div class="ride-name">Moto</div>
+      <div class="ride-meta" id="trip-meta">—</div>
+    </div>
+    <div class="ride-price" id="trip-price">—</div>
+  </div>
+  <div id="route-note"></div>
+  <div class="pay-row">
+    <span>Pagamento</span>
+    <strong>Dinheiro ou Pix</strong>
+  </div>
+  <button id="confirm-btn">Chamar moto</button>
+  <div id="status-msg"></div>
+</div>
+
+<!-- menu lateral -->
+<div id="drawer-overlay"></div>
+<aside id="drawer">
+  <div class="drawer-head">
+    <div class="profile">
+      <div class="avatar">VM</div>
+      <div>
+        <div class="profile-name">Seu nome</div>
+        <div class="profile-stats">
+          <span><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="2"/><path d="M16 12.5h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>R$ 0,00</span>
+          <span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/></svg>5,0</span>
+        </div>
+      </div>
+    </div>
+    <button class="invite-btn" data-soon>
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="9" width="17" height="11" rx="1.5" stroke="currentColor" stroke-width="2"/><path d="M12 9v11M3.5 13h17M12 9C10 5 6.5 5.5 7.5 8c.5 1 4.5 1 4.5 1Zm0 0c2-4 5.5-3.5 4.5-1-.5 1-4.5 1-4.5 1Z" stroke="currentColor" stroke-width="1.8"/></svg>
+      Convidar amigos
+    </button>
+  </div>
+
+  <div class="drawer-body">
+    <div class="drawer-section">
+      <div class="section-title">Corrida</div>
+      <button class="drawer-item current" id="menu-nova-corrida">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="6" cy="17" r="3.5" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="17" r="3.5" stroke="currentColor" stroke-width="2"/><path d="M6 17l4-6h5l3 6M14 7h3l1.5 3" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>
+        Nova corrida
+      </button>
+      <button class="drawer-item" data-soon>
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3.5" stroke="currentColor" stroke-width="2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M17 8v6M14 11h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Pedir pra outra pessoa
+      </button>
+      <button class="drawer-item" data-soon>
+        <svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3.5 10h17M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Agendar
+      </button>
+      <button class="drawer-item" data-soon>
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 4v4.5h4.5M12 8v4.5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Minhas corridas
+      </button>
+    </div>
+
+    <div class="drawer-section">
+      <div class="section-title">Entrega</div>
+      <button class="drawer-item" data-soon>
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 8l8-4 8 4v8l-8 4-8-4V8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M4 8l8 4 8-4M12 12v8" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        Enviar encomenda
+      </button>
+      <button class="drawer-item" data-soon>
+        <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="3.5" width="14" height="17" rx="2" stroke="currentColor" stroke-width="2"/><path d="M9 8.5h6M9 12.5h6M9 16.5h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Meus pedidos
+      </button>
+    </div>
+
+    <div class="drawer-section">
+      <div class="section-title">Conta</div>
+      <button class="drawer-item" data-soon>
+        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="2"/><path d="M3 10h18" stroke="currentColor" stroke-width="2"/></svg>
+        Carteira
+      </button>
+      <button class="drawer-item" data-soon>
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8.5" r="3.8" stroke="currentColor" stroke-width="2"/><path d="M5 20c0-3.6 3.1-6.2 7-6.2s7 2.6 7 6.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Meus dados
+      </button>
+      <button class="drawer-item" data-soon>
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Configurações
+      </button>
+      <button class="drawer-item" data-soon>
+        <svg viewBox="0 0 24 24" fill="none"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Sair
+      </button>
+    </div>
+  </div>
+</aside>
+
+<script>
+(function () {
+  var CENTRO = [-1.5240, -45.0734]; // Apicum-Açu
+  var map = L.map('map', { zoomControl: false, attributionControl: true }).setView(CENTRO, 15);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap'
+  }).addTo(map);
+
+  var iconOrigem = L.divIcon({ className: 'pin-origem', iconSize: [16, 16] });
+  var iconDestino = L.divIcon({ className: 'pin-destino', iconSize: [16, 16] });
+
+  var markerOrigem = null, markerDestino = null, routeLine = null;
+  var pontoOrigem = null, pontoDestino = null;
+
+  var body = document.body;
+  var searchCard = document.getElementById('search-card');
+  var inputOrigem = document.getElementById('input-origem');
+  var inputDestino = document.getElementById('input-destino');
+  var suggOrigem = document.getElementById('sugg-origem');
+  var suggDestino = document.getElementById('sugg-destino');
+  var confirmBtn = document.getElementById('confirm-btn');
+
+  // ---------- utilidades ----------
+  function statusMsg(text, type) {
+    var el = document.getElementById('status-msg');
+    el.textContent = text || '';
+    el.className = type || '';
+  }
+
+  var toastTimer;
+  function toast(text) {
+    var el = document.getElementById('toast');
+    el.textContent = text;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove('show'); }, 2200);
+  }
+
+  function debounce(fn, ms) {
+    var t;
+    return function () {
+      var args = arguments;
+      clearTimeout(t);
+      t = setTimeout(function () { fn.apply(null, args); }, ms);
+    };
+  }
+
+  function enderecoCurto(nome) {
+    // pega só as 2 primeiras partes do endereço pra caber no campo
+    if (!nome) return '';
+    var partes = nome.split(',');
+    return partes.slice(0, 2).join(',').trim();
+  }
+
+  // ---------- busca de endereço ----------
+  function buscarEnderecos(query, callback) {
+    if (!query || query.length < 3) { callback([]); return; }
+    var viewbox = '-45.20,-1.40,-44.95,-1.65';
+    var url = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&limit=5' +
+      '&q=' + encodeURIComponent(query) + '&viewbox=' + viewbox + '&bounded=0';
+    fetch(url, { headers: { 'Accept-Language': 'pt-BR' } })
+      .then(function (r) { return r.json(); })
+      .then(function (data) { callback(data || []); })
+      .catch(function () { callback([]); });
+  }
+
+  function buscarEnderecoDoPonto(lat, lon, callback) {
+    var url = 'https://nominatim.openstreetmap.org/reverse?format=json&zoom=17&lat=' + lat + '&lon=' + lon;
+    fetch(url, { headers: { 'Accept-Language': 'pt-BR' } })
+      .then(function (r) { return r.json(); })
+      .then(function (data) { callback(data && data.display_name ? data.display_name : 'Ponto marcado no mapa'); })
+      .catch(function () { callback('Ponto marcado no mapa'); });
+  }
+
+  var pinSvg = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.2 7-11.5C19 5.4 15.9 3 12 3S5 5.4 5 9.5C5 14.8 12 21 12 21Z" stroke="currentColor" stroke-width="1.9"/></svg>';
+
+  function montarSugestoes(listEl, resultados, onEscolher) {
+    listEl.innerHTML = '';
+    if (!resultados.length) { listEl.classList.remove('show'); return; }
+    resultados.forEach(function (r) {
+      var item = document.createElement('div');
+      item.className = 'sugg-item';
+      item.innerHTML = pinSvg;
+      var txt = document.createElement('span');
+      txt.textContent = r.display_name;
+      item.appendChild(txt);
+      item.addEventListener('click', function () {
+        onEscolher(r);
+        listEl.classList.remove('show');
+      });
+      listEl.appendChild(item);
+    });
+    listEl.classList.add('show');
+  }
+
+  // ---------- pontos e rota ----------
+  function setPonto(tipo, lat, lon, label) {
+    var latlng = [parseFloat(lat), parseFloat(lon)];
+    if (tipo === 'origem') {
+      pontoOrigem = latlng;
+      if (markerOrigem) map.removeLayer(markerOrigem);
+      markerOrigem = L.marker(latlng, { icon: iconOrigem }).addTo(map).bindPopup('Embarque: ' + enderecoCurto(label));
+    } else {
+      pontoDestino = latlng;
+      if (markerDestino) map.removeLayer(markerDestino);
+      markerDestino = L.marker(latlng, { icon: iconDestino }).addTo(map).bindPopup('Destino: ' + enderecoCurto(label));
+    }
+    if (pontoOrigem && pontoDestino) {
+      calcularRota();
+    } else {
+      map.setView(latlng, 16);
+    }
+  }
+
+  // ---------- escolha da melhor rota ----------
+  // O serviço de rota lê a malha de ruas do OpenStreetMap e devolve até 3 caminhos.
+  // Pra moto, a melhor é a mais curta (menos km = mais barato e menos combustível).
+  // Se duas rotas tiverem quase a mesma distância, fica a mais rápida.
+  var rotas = [];
+  var altLayers = [];
+  var rotaEscolhida = 0;
+
+  function limparRotas() {
+    if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+    altLayers.forEach(function (l) { map.removeLayer(l); });
+    altLayers = [];
+  }
+
+  function melhorRota(lista) {
+    var melhor = 0;
+    for (var i = 1; i < lista.length; i++) {
+      var a = lista[i], b = lista[melhor];
+      var diffDist = (a.distance - b.distance) / b.distance;
+      if (diffDist < -0.05) melhor = i;                                  // 5%+ mais curta
+      else if (Math.abs(diffDist) <= 0.05 && a.duration < b.duration) melhor = i; // empate: mais rápida
+    }
+    return melhor;
+  }
+
+  function desenharRotas() {
+    limparRotas();
+    rotas.forEach(function (r, i) {
+      if (i === rotaEscolhida) return;
+      var alt = L.geoJSON(r.geometry, { style: { color: '#8a93a3', weight: 4, opacity: 0.7, dashArray: '8 8' } }).addTo(map);
+      alt.on('click', function () { selecionarRota(i); });
+      altLayers.push(alt);
+    });
+    var sel = rotas[rotaEscolhida];
+    routeLine = L.geoJSON(sel.geometry, { style: { color: '#14161a', weight: 4, opacity: 0.85, dashArray: '8 8' } }).addTo(map);
+    routeLine.bringToFront();
+  }
+
+  function selecionarRota(i) {
+    rotaEscolhida = i;
+    desenharRotas();
+    var r = rotas[i];
+    mostrarResumo(r.distance, r.duration);
+    atualizarNotaRota();
+  }
+
+  function atualizarNotaRota() {
+    var nota = document.getElementById('route-note');
+    if (!rotas.length) { nota.textContent = ''; return; }
+    var ideal = melhorRota(rotas);
+    var txt = rotaEscolhida === ideal ? 'Melhor rota pra moto (mais curta)' : 'Rota alternativa';
+    if (rotas.length > 1) txt += ' · ' + rotas.length + ' opções, toque na cinza pra trocar';
+    nota.textContent = txt;
+  }
+
+  function urlRota(pontos, alternativas) {
+    var coords = pontos.map(function (p) { return p[1] + ',' + p[0]; }).join(';');
+    return 'https://router.project-osrm.org/route/v1/driving/' + coords +
+      '?overview=full&geometries=geojson' + (alternativas ? '&alternatives=3' : '');
+  }
+
+  function pedirRotas(pontos, alternativas) {
+    return fetch(urlRota(pontos, alternativas))
+      .then(function (r) { return r.json(); })
+      .then(function (d) { return (d && d.routes) ? d.routes : []; })
+      .catch(function () { return []; });
+  }
+
+  // Pontos de desvio: dois pontos laterais no meio do caminho (um de cada lado).
+  // Forçar a rota a passar por eles revela caminhos por outras ruas.
+  function pontosDeDesvio() {
+    var la1 = pontoOrigem[0], lo1 = pontoOrigem[1], la2 = pontoDestino[0], lo2 = pontoDestino[1];
+    var mLa = (la1 + la2) / 2, mLo = (lo1 + lo2) / 2;
+    var dLa = la2 - la1, dLo = lo2 - lo1;
+    var k = 0.3; // afastamento lateral = 30% da distância
+    return [
+      [mLa - dLo * k, mLo + dLa * k],
+      [mLa + dLo * k, mLo - dLa * k]
+    ];
+  }
+
+  // Remove rotas praticamente iguais (distância e tempo com menos de 3% de diferença)
+  function semRepetidas(lista) {
+    var out = [];
+    lista.forEach(function (r) {
+      var repetida = out.some(function (o) {
+        return Math.abs(o.distance - r.distance) / o.distance < 0.03 &&
+               Math.abs(o.duration - r.duration) / o.duration < 0.03;
+      });
+      if (!repetida) out.push(r);
+    });
+    return out.slice(0, 3);
+  }
+
+  function calcularRota() {
+    toast('Analisando rotas...');
+    var desvios = pontosDeDesvio();
+    Promise.all([
+      pedirRotas([pontoOrigem, pontoDestino], true),
+      pedirRotas([pontoOrigem, desvios[0], pontoDestino], false),
+      pedirRotas([pontoOrigem, desvios[1], pontoDestino], false)
+    ]).then(function (res) {
+      var todas = res[0].concat(res[1].slice(0, 1), res[2].slice(0, 1));
+      if (!todas.length) { rotaPelaReserva(); return; }
+      // desvio que dá volta demais (50%+ maior que a direta) não entra
+      var direta = res[0][0] ? res[0][0].distance : Infinity;
+      todas = todas.filter(function (r) { return r.distance <= direta * 1.5; });
+      rotas = semRepetidas(todas);
+      selecionarRota(melhorRota(rotas));
+    });
+  }
+
+  // ---------- serviço reserva: Valhalla (tem perfil próprio de moto) ----------
+  function decodificarPolyline6(str) {
+    var idx = 0, lat = 0, lon = 0, coords = [];
+    while (idx < str.length) {
+      var b, shift = 0, result = 0;
+      do { b = str.charCodeAt(idx++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+      lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+      shift = 0; result = 0;
+      do { b = str.charCodeAt(idx++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+      lon += (result & 1) ? ~(result >> 1) : (result >> 1);
+      coords.push([lon / 1e6, lat / 1e6]);
+    }
+    return coords;
+  }
+
+  function tripParaRota(trip) {
+    var coords = [];
+    trip.legs.forEach(function (leg) { coords = coords.concat(decodificarPolyline6(leg.shape)); });
+    return {
+      distance: trip.summary.length * 1000,
+      duration: trip.summary.time,
+      geometry: { type: 'LineString', coordinates: coords }
+    };
+  }
+
+  function rotaPelaReserva() {
+    var req = {
+      locations: [
+        { lat: pontoOrigem[0], lon: pontoOrigem[1] },
+        { lat: pontoDestino[0], lon: pontoDestino[1] }
+      ],
+      costing: 'motorcycle',
+      alternates: 2,
+      directions_options: { units: 'kilometers' }
+    };
+    var url = 'https://valhalla1.openstreetmap.de/route?json=' + encodeURIComponent(JSON.stringify(req));
+    fetch(url)
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.trip) { rotaAproximada(); return; }
+        var lista = [tripParaRota(d.trip)];
+        (d.alternates || []).forEach(function (a) { if (a.trip) lista.push(tripParaRota(a.trip)); });
+        rotas = semRepetidas(lista);
+        selecionarRota(melhorRota(rotas));
+      })
+      .catch(function () { rotaAproximada(); });
+  }
+
+  // Último recurso: nenhum serviço de rota respondeu.
+  // Calcula pela distância em linha reta (+30% pras curvas) e desenha uma linha tracejada.
+  function rotaAproximada() {
+    var reta = map.distance(pontoOrigem, pontoDestino);
+    var distEstimada = reta * 1.3;
+    var duracaoEstimada = distEstimada / (25 / 3.6); // moto a ~25 km/h na cidade
+    rotas = [];
+    limparRotas();
+    document.getElementById('route-note').textContent =
+      'Rota aproximada: sem acesso aos serviços de rota neste navegador';
+    routeLine = L.polyline([pontoOrigem, pontoDestino], {
+      color: '#14161a', weight: 4, opacity: 0.7, dashArray: '8 8'
+    }).addTo(map);
+    mostrarResumo(distEstimada, duracaoEstimada);
+    toast('Rota aproximada');
+  }
+
+  function mostrarResumo(distMetros, duracaoSeg) {
+    var km = distMetros / 1000;
+    var min = Math.max(1, Math.round(duracaoSeg / 60));
+    var preco = 4 + km * 1.8; // tarifa de teste: R$ 4 + R$ 1,80/km
+
+    document.getElementById('trip-meta').textContent = km.toFixed(1).replace('.', ',') + ' km · ' + min + ' min';
+    document.getElementById('trip-price').textContent = 'R$ ' + preco.toFixed(2).replace('.', ',');
+
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = 'Chamar moto';
+    statusMsg('', '');
+    abrirSheet();
+  }
+
+  function abrirSheet() {
+    body.classList.add('sheet-open');
+    var h = document.getElementById('sheet').offsetHeight;
+    document.documentElement.style.setProperty('--sheet-h', h + 'px');
+    setTimeout(function () {
+      if (routeLine) map.fitBounds(routeLine.getBounds(), { paddingTopLeft: [40, 180], paddingBottomRight: [40, h + 30] });
+    }, 260);
+  }
+
+  function fecharSheet() { body.classList.remove('sheet-open'); }
+
+  // ---------- card de busca ----------
+  document.getElementById('search-collapsed').addEventListener('click', function () {
+    searchCard.classList.add('open');
+    setTimeout(function () { inputDestino.focus(); }, 50);
+  });
+
+  document.getElementById('btn-close-search').addEventListener('click', function () {
+    searchCard.classList.remove('open');
+    suggOrigem.classList.remove('show');
+    suggDestino.classList.remove('show');
+    desativarModoSelecao();
+  });
+
+  inputOrigem.addEventListener('input', debounce(function () {
+    buscarEnderecos(inputOrigem.value, function (res) {
+      montarSugestoes(suggOrigem, res, function (r) {
+        inputOrigem.value = enderecoCurto(r.display_name);
+        setPonto('origem', r.lat, r.lon, r.display_name);
+      });
+    });
+  }, 500));
+
+  inputDestino.addEventListener('input', debounce(function () {
+    buscarEnderecos(inputDestino.value, function (res) {
+      montarSugestoes(suggDestino, res, function (r) {
+        inputDestino.value = enderecoCurto(r.display_name);
+        setPonto('destino', r.lat, r.lon, r.display_name);
+      });
+    });
+  }, 500));
+
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('#wrap-origem')) suggOrigem.classList.remove('show');
+    if (!e.target.closest('#wrap-destino')) suggDestino.classList.remove('show');
+  });
+
+  // ---------- marcar no mapa ----------
+  var modoSelecao = null;
+  var mapHint = document.getElementById('map-hint');
+  var btnPinOrigem = document.getElementById('btn-pin-origem');
+  var btnPinDestino = document.getElementById('btn-pin-destino');
+
+  function ativarModoSelecao(tipo) {
+    if (modoSelecao === tipo) { desativarModoSelecao(); return; }
+    modoSelecao = tipo;
+    btnPinOrigem.classList.toggle('active', tipo === 'origem');
+    btnPinDestino.classList.toggle('active', tipo === 'destino');
+    mapHint.textContent = tipo === 'origem' ? 'Toque no mapa onde você está' : 'Toque no mapa no seu destino';
+    mapHint.classList.add('show');
+    fecharSheet();
+  }
+
+  function desativarModoSelecao() {
+    modoSelecao = null;
+    btnPinOrigem.classList.remove('active');
+    btnPinDestino.classList.remove('active');
+    mapHint.classList.remove('show');
+  }
+
+  btnPinOrigem.addEventListener('click', function () { ativarModoSelecao('origem'); });
+  btnPinDestino.addEventListener('click', function () { ativarModoSelecao('destino'); });
+
+  map.on('click', function (e) {
+    if (!modoSelecao) return;
+    var tipo = modoSelecao;
+    var lat = e.latlng.lat, lon = e.latlng.lng;
+    var inputAlvo = tipo === 'origem' ? inputOrigem : inputDestino;
+    inputAlvo.value = 'Localizando rua...';
+    desativarModoSelecao();
+    buscarEnderecoDoPonto(lat, lon, function (endereco) {
+      inputAlvo.value = enderecoCurto(endereco);
+      setPonto(tipo, lat, lon, endereco);
+    });
+  });
+
+  // ---------- localização do celular ----------
+  function usarMinhaLocalizacao(silencioso) {
+    if (!navigator.geolocation) {
+      if (!silencioso) toast('Seu navegador não suporta localização.');
+      return;
+    }
+    if (!silencioso) toast('Buscando sua localização...');
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      var lat = pos.coords.latitude, lon = pos.coords.longitude;
+      inputOrigem.value = 'Localizando rua...';
+      buscarEnderecoDoPonto(lat, lon, function (endereco) {
+        inputOrigem.value = enderecoCurto(endereco);
+        setPonto('origem', lat, lon, endereco);
+      });
+    }, function () {
+      if (!silencioso) toast('Não consegui sua localização. Marque no mapa.');
+      if (inputOrigem.value === 'Localizando rua...') inputOrigem.value = '';
+    }, { enableHighAccuracy: true, timeout: 8000 });
+  }
+
+  document.getElementById('fab-locate').addEventListener('click', function () { usarMinhaLocalizacao(false); });
+
+  // ao abrir o app, já tenta pegar a localização como ponto de embarque
+  usarMinhaLocalizacao(true);
+
+  // ---------- confirmar ----------
+  confirmBtn.addEventListener('click', function () {
+    if (!pontoOrigem || !pontoDestino) return;
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Procurando mototaxista...';
+    statusMsg('Pedido enviado. Aguardando um motorista aceitar.', 'ok');
+  });
+
+  // ---------- menu lateral ----------
+  function abrirMenu() { body.classList.add('drawer-open'); }
+  function fecharMenu() { body.classList.remove('drawer-open'); }
+
+  document.getElementById('btn-menu').addEventListener('click', abrirMenu);
+  document.getElementById('drawer-overlay').addEventListener('click', fecharMenu);
+  document.getElementById('menu-nova-corrida').addEventListener('click', function () {
+    fecharMenu();
+    searchCard.classList.add('open');
+  });
+  document.querySelectorAll('[data-soon]').forEach(function (el) {
+    el.addEventListener('click', function () { fecharMenu(); toast('Em breve'); });
+  });
+  document.getElementById('btn-notif').addEventListener('click', function () { toast('Nenhuma notificação'); });
+})();
+</script>
+</body>
+</html>
