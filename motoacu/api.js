@@ -64,6 +64,28 @@
       }, { 'Prefer': 'return=representation' }).then(function (rows) { return rows && rows[0] ? rows[0] : null; });
     },
 
+    // motorista manda a posição dele (só enquanto a corrida está ativa)
+    enviarPosicao: function (id, lat, lon) {
+      return chamar('PATCH', 'pedidos?id=eq.' + encodeURIComponent(id) + '&status=in.(aceito,em_andamento)', {
+        motorista_lat: lat,
+        motorista_lon: lon,
+        motorista_pos_em: new Date().toISOString()
+      }, { 'Prefer': 'return=minimal' });
+    },
+
+    // histórico do passageiro (identificado pelo WhatsApp salvo no aparelho)
+    listarDoPassageiro: function (tel) {
+      return chamar('GET', 'pedidos?passageiro_tel=eq.' + encodeURIComponent(tel) +
+        '&order=criado_em.desc&limit=30&select=*');
+    },
+
+    // corridas concluídas do motorista desde uma data
+    listarDoMotorista: function (tel, desdeISO) {
+      return chamar('GET', 'pedidos?motorista_tel=eq.' + encodeURIComponent(tel) +
+        '&status=eq.concluido&criado_em=gte.' + encodeURIComponent(desdeISO) +
+        '&order=criado_em.desc&limit=200&select=*');
+    },
+
     // motorista desistiu: o pedido volta pra fila pra outro motorista pegar
     devolverPedido: function (id) {
       return chamar('PATCH', 'pedidos?id=eq.' + encodeURIComponent(id) + '&status=eq.aceito', {

@@ -327,13 +327,39 @@
   .modal-card h2 { margin: 0 0 4px; font-family: var(--font-display); font-size: 19px; }
   .modal-card p { margin: 0 0 14px; font-size: 13.5px; color: var(--text-dim); }
   .modal-card label { display: block; font-size: 12.5px; font-weight: 600; color: var(--text-dim); margin: 10px 0 5px; }
-  .modal-card input {
+  .modal-card input, .modal-card select, .modal-card textarea {
     width: 100%; padding: 13px 12px; border: 1px solid var(--line); border-radius: 10px;
     font-size: 15px; font-family: inherit; background: var(--surface); outline: none;
   }
-  .modal-card input:focus { border-color: var(--amber); background: var(--white); }
+  .modal-card input:focus, .modal-card select:focus, .modal-card textarea:focus { border-color: var(--amber); background: var(--white); }
   #id-erro { color: var(--danger); font-size: 12.5px; min-height: 16px; margin-top: 8px; }
   a.drawer-item { text-decoration: none; }
+
+  .pin-moto { width: 20px; height: 20px; border-radius: 50%; background: var(--ink); border: 3px solid var(--amber); box-shadow: 0 0 0 4px rgba(255,176,32,0.25), 0 2px 6px rgba(0,0,0,0.35); }
+  .modal-card textarea { resize: none; height: 66px; }
+  .modal-card { max-height: 92vh; overflow-y: auto; }
+
+  /* ---------- histórico ---------- */
+  #hist { position: fixed; inset: 0; background: var(--surface); z-index: 940; display: none; flex-direction: column; overflow-y: auto; }
+  #hist.show { display: flex; }
+  .hist-top {
+    position: sticky; top: 0; z-index: 2; flex-shrink: 0; background: var(--ink); color: #fff;
+    display: flex; align-items: center; gap: 6px;
+    height: calc(58px + env(safe-area-inset-top, 0px)); padding: env(safe-area-inset-top, 0px) 6px 0;
+  }
+  .hist-top .top-btn svg { width: 24px; height: 24px; }
+  .hist-titulo { font-family: var(--font-display); font-weight: 700; font-size: 18px; }
+  #hist-lista { padding: 16px; max-width: 520px; width: 100%; margin: 0 auto; }
+  .hist-vazio { text-align: center; color: var(--text-dim); font-size: 14px; padding: 40px 10px; line-height: 1.5; }
+  .hist-item { background: var(--white); border: 1px solid var(--line); border-radius: 14px; padding: 13px 14px; margin-bottom: 10px; }
+  .hist-linha1 { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .hist-tipo { font-weight: 600; font-size: 14px; }
+  .hist-valor { font-family: var(--font-display); font-weight: 700; font-size: 17px; }
+  .hist-data { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+  .hist-trecho { font-size: 13px; color: var(--text-dim); margin-top: 8px; line-height: 1.4; overflow-wrap: anywhere; }
+  .hist-status { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 20px; background: var(--surface); color: var(--text-dim); margin-top: 8px; }
+  .hist-status.ok { background: #e3f6ec; color: var(--ok); }
+  .hist-status.off { background: #fdecea; color: var(--danger); }
 
   /* ---------- toast ---------- */
   #toast {
@@ -536,6 +562,44 @@
   </div>
 </div>
 
+<!-- dados da encomenda -->
+<div id="modal-enc">
+  <div class="modal-card">
+    <h2>Dados da entrega</h2>
+    <p>O motorista precisa saber o que levar e quem vai receber.</p>
+    <label for="enc-tipo">Tipo</label>
+    <select id="enc-tipo">
+      <option value="encomenda">Encomenda (de uma pessoa)</option>
+      <option value="entrega_restaurante">Entrega de restaurante ou loja</option>
+    </select>
+    <div id="enc-loja-wrap" style="display:none">
+      <label for="enc-loja">Nome do restaurante ou loja</label>
+      <input type="text" id="enc-loja" placeholder="Ex.: Pizzaria do Zé">
+    </div>
+    <label for="enc-desc">O que vai ser levado?</label>
+    <textarea id="enc-desc" placeholder="Ex.: 2 pizzas grandes (caixa), pagamento já feito"></textarea>
+    <label for="enc-rec-nome">Quem recebe</label>
+    <input type="text" id="enc-rec-nome" placeholder="Nome de quem vai receber">
+    <label for="enc-rec-tel">WhatsApp de quem recebe</label>
+    <input type="tel" id="enc-rec-tel" placeholder="(98) 9 9999-9999" inputmode="tel">
+    <div id="enc-erro" style="color:var(--danger);font-size:12.5px;min-height:16px;margin-top:8px"></div>
+    <button class="trk-btn" id="enc-ok">Pedir entrega</button>
+    <button class="trk-btn trk-ghost" id="enc-cancel">Voltar</button>
+  </div>
+</div>
+<style>#modal-enc { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 950; display: none; align-items: flex-end; justify-content: center; } #modal-enc.show { display: flex; }</style>
+
+<!-- histórico do passageiro -->
+<div id="hist">
+  <div class="hist-top">
+    <button class="top-btn" id="hist-fechar" aria-label="Fechar">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="hist-titulo">Minhas corridas</div>
+  </div>
+  <div id="hist-lista"></div>
+</div>
+
 <!-- menu lateral -->
 <div id="drawer-overlay"></div>
 <aside id="drawer">
@@ -571,7 +635,7 @@
         <svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3.5 10h17M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         Agendar
       </button>
-      <button class="drawer-item" data-soon>
+      <button class="drawer-item" id="menu-historico">
         <svg viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 4v4.5h4.5M12 8v4.5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Minhas corridas
       </button>
@@ -579,7 +643,7 @@
 
     <div class="drawer-section">
       <div class="section-title">Entrega</div>
-      <button class="drawer-item" data-soon>
+      <button class="drawer-item" id="menu-encomenda">
         <svg viewBox="0 0 24 24" fill="none"><path d="M4 8l8-4 8 4v8l-8 4-8-4V8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M4 8l8 4 8-4M12 12v8" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
         Enviar encomenda
       </button>
@@ -633,6 +697,8 @@
   var markerOrigem = null, markerDestino = null, routeLine = null;
   var pontoOrigem = null, pontoDestino = null;
   var resumoAtual = null;
+  var modo = 'corrida';          // corrida | encomenda
+  var markerMoto = null;
 
   var body = document.body;
   var searchCard = document.getElementById('search-card');
@@ -921,7 +987,7 @@
     document.getElementById('trip-price').textContent = 'R$ ' + preco.toFixed(2).replace('.', ',');
 
     confirmBtn.disabled = false;
-    confirmBtn.textContent = 'Chamar moto';
+    confirmBtn.textContent = textoConfirmar();
     statusMsg('', '');
     abrirSheet();
   }
@@ -1040,6 +1106,42 @@
   // ao abrir o app, já tenta pegar a localização como ponto de embarque
   usarMinhaLocalizacao(true);
 
+  // ---------- modo: corrida ou encomenda ----------
+  function textoConfirmar() { return modo === 'encomenda' ? 'Pedir entrega' : 'Chamar moto'; }
+
+  function aplicarModo(novo) {
+    modo = novo;
+    var enc = modo === 'encomenda';
+    inputOrigem.placeholder = enc ? 'Onde buscar a encomenda?' : 'Onde você está?';
+    inputDestino.placeholder = enc ? 'Onde entregar?' : 'Para onde?';
+    document.querySelector('#search-collapsed span').textContent = enc ? 'Enviar uma encomenda' : 'Para onde?';
+    document.querySelector('.ride-name').textContent = enc ? 'Entrega' : 'Moto';
+    if (resumoAtual && !confirmBtn.disabled) confirmBtn.textContent = textoConfirmar();
+  }
+
+  function nomeTipo(t) {
+    return t === 'encomenda' ? 'Encomenda' : (t === 'entrega_restaurante' ? 'Entrega de restaurante' : 'Corrida');
+  }
+  function nomeStatus(st) {
+    return { pendente: 'Aguardando motorista', aceito: 'Motorista a caminho', em_andamento: 'Em andamento', concluido: 'Concluída', cancelado: 'Cancelada' }[st] || st;
+  }
+  function esc(t) {
+    return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function fmtDist(m) {
+    if (m < 1000) return (Math.max(10, Math.round(m / 10) * 10)) + ' m';
+    return (m / 1000).toFixed(1).replace('.', ',') + ' km';
+  }
+  function fmtData(iso) {
+    var d = new Date(iso), z = function (n) { return (n < 10 ? '0' : '') + n; };
+    return z(d.getDate()) + '/' + z(d.getMonth() + 1) + ' ' + z(d.getHours()) + ':' + z(d.getMinutes());
+  }
+  function trechoCurto(t, lat, lon) {
+    return t ? t.split(',').slice(0, 2).join(',').trim() : ('(' + Number(lat).toFixed(4) + ', ' + Number(lon).toFixed(4) + ')');
+  }
+
   // ---------- pedido: salvar no banco e acompanhar ----------
   var PASS_KEY = 'motoacu_passageiro';
   var PEDIDO_KEY = 'motoacu_pedido_ativo';
@@ -1080,13 +1182,36 @@
     document.getElementById('id-cancel').onclick = function () { modal.classList.remove('show'); };
   }
 
-  function enviarPedido(pessoa) {
+  function pedirDadosEncomenda(callback) {
+    var modal = document.getElementById('modal-enc');
+    var erro = document.getElementById('enc-erro');
+    var tipo = document.getElementById('enc-tipo');
+    var lojaWrap = document.getElementById('enc-loja-wrap');
+    erro.textContent = '';
+    modal.classList.add('show');
+    tipo.onchange = function () { lojaWrap.style.display = tipo.value === 'entrega_restaurante' ? 'block' : 'none'; };
+    document.getElementById('enc-ok').onclick = function () {
+      var desc = document.getElementById('enc-desc').value.trim();
+      var recNome = document.getElementById('enc-rec-nome').value.trim();
+      var recTel = document.getElementById('enc-rec-tel').value.trim();
+      var loja = document.getElementById('enc-loja').value.trim();
+      if (tipo.value === 'entrega_restaurante' && loja.length < 2) { erro.textContent = 'Coloca o nome do restaurante ou loja.'; return; }
+      if (desc.length < 3) { erro.textContent = 'Descreve o que vai ser levado.'; return; }
+      if (recNome.length < 2) { erro.textContent = 'Coloca o nome de quem recebe.'; return; }
+      if (soDigitos(recTel).length < 10) { erro.textContent = 'Coloca o WhatsApp de quem recebe, com DDD.'; return; }
+      modal.classList.remove('show');
+      callback({ tipo: tipo.value, loja: tipo.value === 'entrega_restaurante' ? loja : '', descricao: desc, recNome: recNome, recTel: recTel });
+    };
+    document.getElementById('enc-cancel').onclick = function () { modal.classList.remove('show'); };
+  }
+
+  function enviarPedido(pessoa, extra) {
     confirmBtn.disabled = true;
     confirmBtn.textContent = 'Enviando pedido...';
     statusMsg('', '');
     var texto = function (inp) { return inp.value.indexOf('Localizando') === 0 ? '' : inp.value; };
-    MotoApi.criarPedido({
-      tipo: 'corrida',
+    var dados = {
+      tipo: extra ? extra.tipo : 'corrida',
       passageiro_nome: pessoa.nome,
       passageiro_tel: pessoa.tel,
       origem_lat: pontoOrigem[0], origem_lon: pontoOrigem[1], origem_texto: texto(inputOrigem),
@@ -1094,13 +1219,20 @@
       distancia_km: Math.round(resumoAtual.km * 100) / 100,
       duracao_min: resumoAtual.min,
       valor: Math.round(resumoAtual.preco * 100) / 100
-    }).then(function (p) {
+    };
+    if (extra) {
+      dados.descricao = extra.descricao;
+      dados.solicitante_nome = extra.loja || pessoa.nome;
+      dados.destinatario_nome = extra.recNome;
+      dados.destinatario_tel = extra.recTel;
+    }
+    MotoApi.criarPedido(dados).then(function (p) {
       pedidoAtual = p;
       gravarLocal(PEDIDO_KEY, p.id);
       mostrarAcompanhamento();
     }).catch(function (e) {
       confirmBtn.disabled = false;
-      confirmBtn.textContent = 'Chamar moto';
+      confirmBtn.textContent = textoConfirmar();
       statusMsg('Não consegui enviar o pedido: ' + e.message, 'error');
     });
   }
@@ -1122,11 +1254,12 @@
     pollTimer = setInterval(atualizarPedido, 4000);
   }
 
-  function centralizarPedido() {
+  function centralizarPedido(posMoto) {
     if (!pedidoAtual) return;
     var h = document.getElementById('sheet').offsetHeight || 260;
-    map.fitBounds([[pedidoAtual.origem_lat, pedidoAtual.origem_lon], [pedidoAtual.destino_lat, pedidoAtual.destino_lon]],
-      { paddingTopLeft: [50, 90], paddingBottomRight: [50, h + 40], maxZoom: 17 });
+    var pts = [[pedidoAtual.origem_lat, pedidoAtual.origem_lon], [pedidoAtual.destino_lat, pedidoAtual.destino_lon]];
+    if (posMoto) pts.push(posMoto);
+    map.fitBounds(pts, { paddingTopLeft: [50, 90], paddingBottomRight: [50, h + 40], maxZoom: 17 });
   }
 
   function pararPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
@@ -1142,6 +1275,7 @@
 
   function renderAcompanhamento() {
     var p = pedidoAtual;
+    var enc = p.tipo === 'encomenda' || p.tipo === 'entrega_restaurante';
     var dot = document.getElementById('trk-dot');
     var txt = document.getElementById('trk-text');
     var sub = document.getElementById('trk-sub');
@@ -1153,26 +1287,46 @@
     cancel.style.display = 'none';
     nova.style.display = 'none';
 
+    // moto ao vivo no mapa
+    var distTxt = '';
+    var ativa = p.status === 'aceito' || p.status === 'em_andamento';
+    if (ativa && p.motorista_lat != null && p.motorista_lon != null) {
+      var pos = [p.motorista_lat, p.motorista_lon];
+      if (!markerMoto) {
+        markerMoto = L.marker(pos, { icon: L.divIcon({ className: 'pin-moto', iconSize: [20, 20] }), zIndexOffset: 500 }).addTo(map);
+        centralizarPedido(pos);
+      } else {
+        markerMoto.setLatLng(pos);
+      }
+      var alvo = p.status === 'aceito' ? [p.origem_lat, p.origem_lon] : [p.destino_lat, p.destino_lon];
+      distTxt = fmtDist(map.distance(pos, alvo));
+    } else if (markerMoto) {
+      map.removeLayer(markerMoto);
+      markerMoto = null;
+    }
+
     if (p.status === 'pendente') {
       txt.textContent = 'Procurando mototaxista...';
       sub.textContent = 'Seu pedido foi enviado. Assim que um motorista aceitar, aparece aqui.';
       cancel.style.display = 'block';
     } else if (p.status === 'aceito') {
       dot.className = 'pulse ok';
-      txt.textContent = p.motorista_nome + ' aceitou e está indo até você';
-      sub.textContent = 'Fica no ponto de embarque. Se precisar, chama o motorista no WhatsApp.';
+      txt.textContent = p.motorista_nome + ' aceitou e está indo ' + (enc ? 'buscar a encomenda' : 'até você');
+      sub.textContent = (distTxt ? 'Moto a ' + distTxt + (enc ? ' do ponto de retirada. ' : ' de você. ') : '') +
+        'Se precisar, chama o motorista no WhatsApp.';
       whats.href = linkWhats(p.motorista_tel);
       whats.style.display = 'block';
       cancel.style.display = 'block';
     } else if (p.status === 'em_andamento') {
       dot.className = 'pulse ok';
-      txt.textContent = 'Corrida em andamento';
-      sub.textContent = 'Boa viagem! Valor: ' + reais(p.valor) + ' (dinheiro ou Pix direto com o motorista).';
+      txt.textContent = enc ? 'Encomenda a caminho do destino' : 'Corrida em andamento';
+      sub.textContent = (distTxt ? 'Faltam ' + distTxt + ' até o destino. ' : '') +
+        'Valor: ' + reais(p.valor) + ' (dinheiro ou Pix direto com o motorista).';
       whats.href = linkWhats(p.motorista_tel);
       whats.style.display = 'block';
     } else if (p.status === 'concluido') {
       dot.className = 'pulse off';
-      txt.textContent = 'Corrida concluída';
+      txt.textContent = enc ? 'Entrega concluída' : 'Corrida concluída';
       sub.textContent = 'Valor: ' + reais(p.valor) + '. Obrigado por usar o MotoAçu!';
       nova.style.display = 'block';
       encerrarPedido();
@@ -1185,7 +1339,11 @@
     }
   }
 
-  function encerrarPedido() { pararPolling(); gravarLocal(PEDIDO_KEY, null); }
+  function encerrarPedido() {
+    pararPolling();
+    gravarLocal(PEDIDO_KEY, null);
+    if (markerMoto) { map.removeLayer(markerMoto); markerMoto = null; }
+  }
 
   document.getElementById('trk-cancel').addEventListener('click', function () {
     if (!pedidoAtual) return;
@@ -1209,7 +1367,10 @@
       statusMsg('Falta ligar o banco de dados (preencher o config.js).', 'error');
       return;
     }
-    pedirIdentificacao(enviarPedido);
+    pedirIdentificacao(function (pessoa) {
+      if (modo === 'encomenda') pedirDadosEncomenda(function (extra) { enviarPedido(pessoa, extra); });
+      else enviarPedido(pessoa, null);
+    });
   });
 
   // Se o passageiro fechou a página no meio de uma corrida, retoma de onde parou.
@@ -1237,8 +1398,40 @@
   document.getElementById('drawer-overlay').addEventListener('click', fecharMenu);
   document.getElementById('menu-nova-corrida').addEventListener('click', function () {
     fecharMenu();
+    aplicarModo('corrida');
     searchCard.classList.add('open');
   });
+  document.getElementById('menu-encomenda').addEventListener('click', function () {
+    fecharMenu();
+    aplicarModo('encomenda');
+    searchCard.classList.add('open');
+  });
+
+  // ---------- histórico ----------
+  function abrirHistorico() {
+    var hist = document.getElementById('hist');
+    var lista = document.getElementById('hist-lista');
+    hist.classList.add('show');
+    var pessoa = lerLocal(PASS_KEY);
+    if (!MotoApi.configurado()) { lista.innerHTML = '<div class="hist-vazio">O banco de dados ainda não foi configurado.</div>'; return; }
+    if (!pessoa || !pessoa.tel) { lista.innerHTML = '<div class="hist-vazio">Faz seu primeiro pedido e o histórico aparece aqui.</div>'; return; }
+    lista.innerHTML = '<div class="hist-vazio">Carregando...</div>';
+    MotoApi.listarDoPassageiro(pessoa.tel).then(function (rows) {
+      if (!rows.length) { lista.innerHTML = '<div class="hist-vazio">Nenhuma corrida ainda.</div>'; return; }
+      lista.innerHTML = rows.map(function (r) {
+        var cls = r.status === 'concluido' ? 'ok' : (r.status === 'cancelado' ? 'off' : '');
+        return '<div class="hist-item">' +
+          '<div class="hist-linha1"><span class="hist-tipo">' + esc(nomeTipo(r.tipo)) + '</span><span class="hist-valor">' + esc(reais(r.valor)) + '</span></div>' +
+          '<div class="hist-data">' + esc(fmtData(r.criado_em)) + '</div>' +
+          '<div class="hist-trecho">' + esc(trechoCurto(r.origem_texto, r.origem_lat, r.origem_lon)) + '<br>→ ' + esc(trechoCurto(r.destino_texto, r.destino_lat, r.destino_lon)) + '</div>' +
+          '<span class="hist-status ' + cls + '">' + esc(nomeStatus(r.status)) + '</span></div>';
+      }).join('');
+    }).catch(function (e) {
+      lista.innerHTML = '<div class="hist-vazio">Não consegui carregar: ' + esc(e.message) + '</div>';
+    });
+  }
+  document.getElementById('menu-historico').addEventListener('click', function () { fecharMenu(); abrirHistorico(); });
+  document.getElementById('hist-fechar').addEventListener('click', function () { document.getElementById('hist').classList.remove('show'); });
   document.querySelectorAll('[data-soon]').forEach(function (el) {
     el.addEventListener('click', function () { fecharMenu(); toast('Em breve'); });
   });

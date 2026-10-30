@@ -141,6 +141,28 @@
   #at-pass { font-size: 14px; margin-top: 8px; color: var(--text-dim); }
   #at-pass b { color: var(--text); }
 
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; background: var(--ink); color: #fff; margin-bottom: 10px; }
+  .badge.enc { background: var(--amber); color: #1a1300; }
+  .desc-enc { font-size: 13.5px; background: var(--surface); border-radius: 10px; padding: 9px 11px; margin-top: 12px; line-height: 1.4; overflow-wrap: anywhere; }
+  .desc-enc small { display: block; font-size: 11.5px; font-weight: 600; color: var(--text-faint); }
+  #at-desc { display: none; }
+  #at-desc.show { display: block; }
+  #at-gps { font-size: 12px; color: var(--text-faint); margin-top: 10px; text-align: center; }
+  .pin-eu { width: 18px; height: 18px; border-radius: 50%; background: var(--ink); border: 3px solid var(--amber); box-shadow: 0 0 0 4px rgba(255,176,32,0.25); }
+  #ganhos { position: fixed; inset: 0; background: var(--surface); z-index: 940; display: none; flex-direction: column; overflow-y: auto; }
+  #ganhos.show { display: flex; }
+  .g-top { position: sticky; top: 0; background: var(--ink); color: #fff; display: flex; align-items: center; gap: 6px; height: calc(58px + env(safe-area-inset-top, 0px)); padding: env(safe-area-inset-top, 0px) 6px 0; flex-shrink: 0; }
+  .g-top b { font-family: var(--font-display); font-size: 18px; }
+  #ganhos-corpo { padding: 16px; max-width: 520px; width: 100%; margin: 0 auto; }
+  .g-cards { display: flex; gap: 10px; margin-bottom: 18px; }
+  .g-card { flex: 1; background: var(--white); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+  .g-card small { display: block; font-size: 12px; color: var(--text-dim); font-weight: 600; }
+  .g-card strong { display: block; font-family: var(--font-display); font-size: 24px; margin-top: 4px; }
+  .g-card span { font-size: 12px; color: var(--text-faint); }
+  .g-item { background: var(--white); border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px; margin-bottom: 8px; display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
+  .g-item b { font-family: var(--font-display); font-size: 15px; }
+  .g-item small { display: block; color: var(--text-faint); }
+  .g-nota { font-size: 12px; color: var(--text-faint); margin: 4px 0 14px; line-height: 1.4; }
   .pin-origem { width: 16px; height: 16px; border-radius: 50%; background: var(--blue); border: 3px solid #fff; box-shadow: 0 0 0 5px rgba(59,130,246,0.22), 0 2px 6px rgba(0,0,0,0.3); }
   .pin-destino { width: 16px; height: 16px; border-radius: 4px; background: var(--amber); border: 3px solid var(--ink); box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
   .leaflet-control-attribution { font-size: 9px; }
@@ -190,6 +212,7 @@
     <button class="switch" id="switch" aria-label="Ficar online"></button>
   </div>
   <div id="aviso"></div>
+  <button class="btn ghost" id="btn-ganhos" style="margin:0 0 14px">Meus ganhos</button>
 
   <div id="lista-wrap">
     <div class="section-title" id="lista-titulo">Pedidos disponíveis</div>
@@ -209,11 +232,13 @@
         </div>
       </div>
       <div class="at-resumo"><span id="at-meta"></span><strong id="at-valor"></strong></div>
+      <div id="at-desc" class="desc-enc"></div>
       <div id="at-pass"></div>
       <a class="btn amber" id="at-nav" target="_blank" rel="noopener">Abrir rota no Google Maps</a>
       <a class="btn green" id="at-whats" target="_blank" rel="noopener">WhatsApp do passageiro</a>
       <button class="btn" id="at-prox">Cheguei, iniciar corrida</button>
       <button class="btn ghost" id="at-cancel">Desistir da corrida</button>
+      <div id="at-gps"></div>
     </div>
   </div>
 </main>
@@ -231,6 +256,14 @@
     <button class="btn amber" id="id-ok">Salvar</button>
     <button class="btn ghost" id="id-cancel">Voltar</button>
   </div>
+</div>
+
+<div id="ganhos">
+  <div class="g-top">
+    <button class="top-btn" id="ganhos-fechar" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <b>Meus ganhos</b>
+  </div>
+  <div id="ganhos-corpo"></div>
 </div>
 
 <div id="toast"></div>
@@ -382,6 +415,17 @@
     });
   }
 
+  function ehEnc(p) { return p.tipo === 'encomenda' || p.tipo === 'entrega_restaurante'; }
+  function badgeTipo(p) {
+    if (p.tipo === 'encomenda') return '<span class="badge enc">ENCOMENDA</span>';
+    if (p.tipo === 'entrega_restaurante') return '<span class="badge enc">ENTREGA RESTAURANTE</span>';
+    return '';
+  }
+  function descCard(p) {
+    if (!ehEnc(p) || !p.descricao) return '';
+    return '<div class="desc-enc"><small>O que levar</small>' + esc(p.descricao) + '</div>';
+  }
+
   function renderLista(lista) {
     var assin = lista.map(function (p) { return p.id + haQuanto(p.criado_em); }).join('|');
     $('vazio').classList.toggle('show', online && !pedidoAtivo && lista.length === 0);
@@ -389,15 +433,15 @@
     if (assin === assinaturaLista) return;
     assinaturaLista = assin;
     $('lista').innerHTML = lista.map(function (p) {
-      return '<div class="pedido" data-id="' + esc(p.id) + '">' +
+      return '<div class="pedido" data-id="' + esc(p.id) + '">' + badgeTipo(p) +
         '<div class="pedido-topo"><div class="pedido-valor">' + reais(p.valor) + '</div>' +
         '<div class="pedido-meta">' + Number(p.distancia_km).toFixed(1).replace('.', ',') + ' km · ' + esc(p.duracao_min) + ' min<br>' + haQuanto(p.criado_em) + '</div></div>' +
         '<div class="trecho"><div class="trilho"><span class="t-o"></span><span class="t-linha"></span><span class="t-d"></span></div>' +
         '<div class="enderecos">' +
         '<div class="end"><small>Embarque</small>' + esc(curto(p.origem_texto, p.origem_lat, p.origem_lon)) + '</div>' +
         '<div class="end"><small>Destino</small>' + esc(curto(p.destino_texto, p.destino_lat, p.destino_lon)) + '</div>' +
-        '</div></div>' +
-        '<button class="btn amber" data-aceitar="' + esc(p.id) + '">Aceitar corrida</button></div>';
+        '</div></div>' + descCard(p) +
+        '<button class="btn amber" data-aceitar="' + esc(p.id) + '">' + (ehEnc(p) ? 'Aceitar entrega' : 'Aceitar corrida') + '</button></div>';
     }).join('');
   }
 
@@ -424,6 +468,40 @@
   // ---------- corrida em andamento ----------
   var map = null, mkO = null, mkD = null;
 
+  // ---------- GPS: manda a posição pro passageiro ----------
+  var gpsId = null, ultimoEnvio = 0, mkEu = null;
+  function iniciarGPS() {
+    if (gpsId !== null) return;
+    if (!navigator.geolocation) { $('at-gps').textContent = 'Este aparelho não tem GPS no navegador.'; return; }
+    $('at-gps').textContent = 'Ativando localização...';
+    gpsId = navigator.geolocation.watchPosition(function (pos) {
+      var lat = pos.coords.latitude, lon = pos.coords.longitude;
+      desenharMoto(lat, lon);
+      if (!pedidoAtivo) return;
+      var agora = Date.now();
+      if (agora - ultimoEnvio < 5000) return;
+      ultimoEnvio = agora;
+      MotoApi.enviarPosicao(pedidoAtivo.id, lat, lon).then(function () {
+        $('at-gps').textContent = 'Passageiro vendo sua moto no mapa ✓';
+      }).catch(function () {
+        $('at-gps').textContent = 'Localização ligada, mas não consegui enviar (falta rodar a migração 2 no banco?).';
+      });
+    }, function () {
+      $('at-gps').textContent = 'Sem permissão de localização. O passageiro não vê sua moto.';
+    }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+  }
+  function pararGPS() {
+    if (gpsId !== null) { navigator.geolocation.clearWatch(gpsId); gpsId = null; }
+    if (mkEu && map) { map.removeLayer(mkEu); }
+    mkEu = null; ultimoEnvio = 0;
+    $('at-gps').textContent = '';
+  }
+  function desenharMoto(lat, lon) {
+    if (!map) return;
+    if (!mkEu) mkEu = L.marker([lat, lon], { icon: L.divIcon({ className: 'pin-eu', iconSize: [18, 18] }), zIndexOffset: 500 }).addTo(map);
+    else mkEu.setLatLng([lat, lon]);
+  }
+
   function iniciarCorrida(p) {
     pedidoAtivo = p;
     gravarLocal(ATIVO_KEY, p.id);
@@ -435,6 +513,7 @@
     montarMapa();
     pararAtivo();
     pollAtivo = setInterval(atualizarCorrida, 4000);
+    iniciarGPS();
     window.scrollTo(0, 0);
   }
 
@@ -460,15 +539,24 @@
     $('at-destino').textContent = curto(p.destino_texto, p.destino_lat, p.destino_lon);
     $('at-meta').textContent = Number(p.distancia_km).toFixed(1).replace('.', ',') + ' km · ' + p.duracao_min + ' min';
     $('at-valor').textContent = reais(p.valor);
-    $('at-pass').innerHTML = 'Passageiro: <b>' + esc(p.passageiro_nome) + '</b>';
+    var enc = ehEnc(p);
+    var quem = p.solicitante_nome && p.solicitante_nome !== p.passageiro_nome ? p.solicitante_nome + ' (' + p.passageiro_nome + ')' : p.passageiro_nome;
+    $('at-pass').innerHTML = (enc ? 'Quem pediu: ' : 'Passageiro: ') + '<b>' + esc(quem) + '</b>' +
+      (enc && p.destinatario_nome ? '<br>Quem recebe: <b>' + esc(p.destinatario_nome) + '</b> · ' + esc(p.destinatario_tel || '') : '');
+    var d = $('at-desc');
+    if (enc && p.descricao) { d.innerHTML = '<small>O que levar</small>' + esc(p.descricao); d.classList.add('show'); }
+    else { d.innerHTML = ''; d.classList.remove('show'); }
+    $('at-whats').textContent = enc ? 'WhatsApp de quem pediu' : 'WhatsApp do passageiro';
     $('at-whats').href = linkWhats(p.passageiro_tel);
 
     var aCaminho = p.status === 'aceito';
-    $('at-status').textContent = aCaminho ? 'Vá até o passageiro' : 'Leve o passageiro ao destino';
+    $('at-status').textContent = aCaminho ? (enc ? 'Vá buscar a encomenda' : 'Vá até o passageiro')
+                                          : (enc ? 'Leve a encomenda até o destino' : 'Leve o passageiro ao destino');
     var alvo = aCaminho ? [p.origem_lat, p.origem_lon] : [p.destino_lat, p.destino_lon];
     $('at-nav').href = 'https://www.google.com/maps/dir/?api=1&destination=' + alvo[0] + ',' + alvo[1] + '&travelmode=driving';
-    $('at-nav').textContent = aCaminho ? 'Abrir rota até o passageiro' : 'Abrir rota até o destino';
-    $('at-prox').textContent = aCaminho ? 'Cheguei, iniciar corrida' : 'Finalizar corrida';
+    $('at-nav').textContent = aCaminho ? (enc ? 'Abrir rota até a retirada' : 'Abrir rota até o passageiro') : 'Abrir rota até o destino';
+    $('at-prox').textContent = aCaminho ? (enc ? 'Peguei a encomenda' : 'Cheguei, iniciar corrida')
+                                        : (enc ? 'Finalizar entrega' : 'Finalizar corrida');
     $('at-cancel').style.display = aCaminho ? 'block' : 'none';
   }
 
@@ -490,6 +578,7 @@
 
   function liberarMotorista() {
     pararAtivo();
+    pararGPS();
     pedidoAtivo = null;
     gravarLocal(ATIVO_KEY, null);
     $('ativo').classList.remove('show');
@@ -510,11 +599,11 @@
         pedidoAtivo = novo; renderCorrida();
       }).catch(function (e) { btn.disabled = false; toast('Erro: ' + e.message); });
     } else if (p.status === 'em_andamento') {
-      if (!window.confirm('Finalizar a corrida? Valor combinado: ' + reais(p.valor))) return;
+      if (!window.confirm((ehEnc(p) ? 'Finalizar a entrega? ' : 'Finalizar a corrida? ') + 'Valor combinado: ' + reais(p.valor))) return;
       btn.disabled = true;
       MotoApi.mudarStatus(p.id, 'concluido', ['em_andamento']).then(function () {
         btn.disabled = false;
-        toast('Corrida concluída! ' + reais(p.valor));
+        toast((ehEnc(p) ? 'Entrega concluída! ' : 'Corrida concluída! ') + reais(p.valor));
         liberarMotorista();
       }).catch(function (e) { btn.disabled = false; toast('Erro: ' + e.message); });
     }
@@ -529,6 +618,33 @@
       liberarMotorista();
     }).catch(function (e) { toast('Erro: ' + e.message); });
   });
+
+  // ---------- ganhos ----------
+  function abrirGanhos() {
+    var corpo = $('ganhos-corpo');
+    $('ganhos').classList.add('show');
+    if (!motorista || !motorista.tel) { corpo.innerHTML = '<div class="g-nota">Cadastra seu nome e WhatsApp (ícone de perfil) e faz sua primeira corrida pra ver os ganhos aqui.</div>'; return; }
+    corpo.innerHTML = '<div class="g-nota">Carregando...</div>';
+    var inicio = new Date(); inicio.setHours(0, 0, 0, 0);
+    var semana = new Date(inicio.getTime() - 6 * 86400000);
+    MotoApi.listarDoMotorista(motorista.tel, semana.toISOString()).then(function (rows) {
+      var hoje = rows.filter(function (r) { return new Date(r.criado_em) >= inicio; });
+      var soma = function (l) { return l.reduce(function (t, r) { return t + Number(r.valor || 0); }, 0); };
+      var html = '<div class="g-cards">' +
+        '<div class="g-card"><small>Hoje</small><strong>' + esc(reais(soma(hoje))) + '</strong><span>' + hoje.length + (hoje.length === 1 ? ' corrida' : ' corridas') + '</span></div>' +
+        '<div class="g-card"><small>Últimos 7 dias</small><strong>' + esc(reais(soma(rows))) + '</strong><span>' + rows.length + (rows.length === 1 ? ' corrida' : ' corridas') + '</span></div></div>' +
+        '<div class="g-nota">Valores brutos, sem descontar gasolina ou taxas.</div>';
+      if (!rows.length) html += '<div class="g-nota">Nenhuma corrida concluída nos últimos 7 dias.</div>';
+      html += rows.map(function (r) {
+        var dt = new Date(r.criado_em), z = function (n) { return (n < 10 ? '0' : '') + n; };
+        return '<div class="g-item"><div><b>' + esc(reais(r.valor)) + '</b><small>' + z(dt.getDate()) + '/' + z(dt.getMonth() + 1) + ' ' + z(dt.getHours()) + ':' + z(dt.getMinutes()) + ' · ' +
+          (ehEnc(r) ? 'Entrega' : 'Corrida') + '</small></div><div style="text-align:right;color:var(--text-dim)">' + esc(Number(r.distancia_km).toFixed(1).replace('.', ',')) + ' km</div></div>';
+      }).join('');
+      corpo.innerHTML = html;
+    }).catch(function (e) { corpo.innerHTML = '<div class="g-nota">Não consegui carregar: ' + esc(e.message) + '</div>'; });
+  }
+  $('btn-ganhos').addEventListener('click', abrirGanhos);
+  $('ganhos-fechar').addEventListener('click', function () { $('ganhos').classList.remove('show'); });
 
   // ---------- ao abrir: retoma corrida em andamento ----------
   if (!MotoApi.configurado()) {
